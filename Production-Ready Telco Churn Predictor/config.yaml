@@ -1,0 +1,166 @@
+data_paths:
+  raw_data: "data/raw/hmQOVnDvRN.xls"
+  processed_data: "data/processed/TelcoChurn_Missing_Values_Handled.csv"
+  artifacts_dir: "artifacts"
+  data_artifacts_dir: "artifacts/data"
+  model_artifacts_dir: "artifacts/models"
+
+columns:
+  target: "Churn"
+  drop_columns: ["customerID"]
+  critical_columns: []
+  outlier_columns: ["tenure", "MonthlyCharges", "TotalCharges"]
+  nominal_columns: ['gender', 'Partner', 'Dependents', 'PhoneService', 'MultipleLines', 'InternetService', 'OnlineSecurity', 'OnlineBackup', 'DeviceProtection', 'TechSupport', 'StreamingTV', 'StreamingMovies', 'Contract', 'PaperlessBilling', 'PaymentMethod']
+  numeric_columns: ['SeniorCitizen', 'tenure', 'MonthlyCharges', 'TotalCharges']
+  feature_columns: ['gender', 'SeniorCitizen', 'Partner', 'Dependents',
+       'tenure', 'PhoneService', 'MultipleLines', 'InternetService',
+       'OnlineSecurity', 'OnlineBackup', 'DeviceProtection', 'TechSupport',
+       'StreamingTV', 'StreamingMovies', 'Contract', 'PaperlessBilling',
+       'PaymentMethod', 'MonthlyCharges', 'TotalCharges']
+
+
+missing_values:
+  strategy: "fill"
+  methods:
+    TotalCharges:
+      strategy: "fill"
+      method: "constant"
+      fill_value: 0
+      relevant_column: "TotalCharges"
+
+outlier_detection:
+  detection_method: "iqr"
+  handling_method: "remove"
+  z_score_threshold: 3.0
+
+feature_binning:
+  tenure_bins:
+    New: [0, 12]
+    Medium: [12, 36]
+    Long: [36, 100]
+  tenure_mapping:
+    New: 0
+    Medium: 1
+    Long: 2
+
+feature_encoding:
+  yes_no_columns : ['Partner', 'Dependents' ,'PhoneService', 'PaperlessBilling', 'Churn' ]
+  
+  nominal_columns: ["gender", "Partner", "Dependents", "PhoneService", "MultipleLines", "InternetService", "OnlineSecurity", "OnlineBackup", "DeviceProtection", "TechSupport", "StreamingTV", "StreamingMovies", "Contract", "PaperlessBilling", "PaymentMethod", "Churn"]
+  ordinal_mappings:
+    tenureBins:
+      New: 0
+      Medium: 1
+      Long: 2
+
+feature_scaling:
+  scaling_type: "minmax"
+  columns_to_scale: ["MonthlyCharges", "TotalCharges", "tenure"]
+
+data_splitting:
+  split_type: "simple"
+  test_size: 0.2
+  random_state: 42
+  n_splits: 5
+
+training:
+  default_model_type: "random_forest"
+  default_training_strategy: "cv"
+  cv_folds: 5
+  random_state: 42
+  test_size: 0.2
+  validation_split: 0.2
+  early_stopping_patience: 10
+  max_iterations: 1000
+  hyperparameter_tuning:
+    enabled: false
+    search_method: "grid"
+    cv_folds: 5
+    n_iter: 20
+
+model:
+  model_type: "random_forest"
+  training_strategy: "cv"
+  data_path: "data/raw/hmQOVnDvRN.xls"
+  model_path: "artifacts/models/model.pkl"
+  evaluation_path: "artifacts/evaluation/model.txt"
+  model_params:
+    n_estimators: 100
+    max_depth: 10
+    random_state: 42
+  model_types:
+    random_forest:
+      n_estimators: 100
+      max_depth: 10
+      random_state: 42
+      min_samples_split: 2
+      min_samples_leaf: 1
+    gradient_boosting:
+      n_estimators: 100
+      max_depth: 5
+      learning_rate: 0.1
+      random_state: 42
+    logistic_regression:
+      random_state: 42
+      max_iter: 1000
+      C: 1.0
+      solver: 'liblinear'
+    decision_tree:
+      max_depth: 10
+      min_samples_split: 2
+      min_samples_leaf: 1
+      random_state: 42
+    catboost:
+      iterations: 100
+      learning_rate: 0.1
+      depth: 6
+      random_state: 42
+      verbose: False
+      loss_function: 'Logloss'
+    xgboost:
+      n_estimators: 100
+      max_depth: 6
+      learning_rate: 0.1
+      subsample: 0.8
+      colsample_bytree: 0.8
+      random_state: 42
+      objective: 'binary:logistic'
+      eval_metric: 'logloss'
+
+evaluation:
+  metrics:
+    - "accuracy"
+    - "precision"
+    - "recall"
+    - "f1-score"
+  cv_folds: 5
+  random_state: 42
+
+deployment:
+  model_name: "churn_analysis_model"
+  model_version: "1.0.0"
+  api_endpoint: "/predict"
+  batch_size: 1000
+
+inference:
+  model_name: "model"
+  data_path: "artifacts/data/X_test.csv"
+  sample_size: 100
+  save_path: "artifacts/predictions/predictions.csv"
+  batch_size: 1000
+  return_proba: true
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(levelname)s - %(message)s"
+  file: "pipeline.log"
+
+environment:
+  experiment_name: "telco_churn_analysis"
+
+pipeline:
+  data_pipeline_name: "data_processing_pipeline"
+  training_pipeline_name: "model_training_pipeline"
+  deployment_pipeline_name: "model_deployment_pipeline"
+  inference_pipeline_name: "inference_pipeline"
+  enable_cache: false
